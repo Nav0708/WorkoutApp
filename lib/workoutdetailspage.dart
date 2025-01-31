@@ -15,12 +15,16 @@ class WorkoutDetails extends StatelessWidget {
           final result = workout.exerciseResults[index];
           final isSuccess = result.achievedOutput >=
               result.exercise.targetOutput;
-
+          print(result.exercise.exerciseName);
           return ListTile(
-            title: Text(result.exercise.exerciseName),
+            title: Text(result.exercise.exerciseName, style: TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+            ),),
             subtitle: Text(
-              'Target: ${result.exercise.targetOutput} ${result.exercise.unitMeasurement}\n'
+              'Target : ${result.exercise.targetOutput} ${result.exercise.unitMeasurement}\n'
                   'Achieved: ${result.achievedOutput} ${result.exercise.unitMeasurement}',
+                style: TextStyle(fontSize: 16)
             ),
             trailing: Icon(
               isSuccess ? Icons.check_circle : Icons.error,
