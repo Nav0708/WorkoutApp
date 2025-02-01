@@ -1,6 +1,7 @@
 import 'package:ecommerce/workoutdetailspage.dart';
 import 'package:ecommerce/workoutprovider.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'model/exercise.dart';
 import 'model/exercise_result.dart';
@@ -23,7 +24,7 @@ class WorkoutHistoryPage extends StatelessWidget {
           final iworkout = workoutProvider.workouts[index];
           print(iworkout); // Debugging: Prints workout details to console
           return ListTile(
-            title: Text(iworkout.workoutDate.toString().split(' ')[0]), // Corrected for DateTime object
+            title: Text('${DateFormat('dd MMM yyyy').format(iworkout.workoutDate)}'), // Corrected for DateTime object
             subtitle: Text('${iworkout.exerciseResults.length} exercises'),
             onTap: () {
               Navigator.push(

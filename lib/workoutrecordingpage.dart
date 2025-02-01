@@ -3,11 +3,9 @@ import 'package:provider/provider.dart';
 import 'model/exercise.dart';
 import 'model/workoutplan.dart';
 import 'package:ecommerce/workoutprovider.dart';
-import 'model/exercise.dart';
 import 'model/exercise_result.dart';
 import 'model/workout.dart';
-import 'model/workoutplan.dart';
-import 'dart:async'; // Import this to use Timer
+import 'dart:async';
 
 class WorkoutRecordingPage extends StatefulWidget {
   @override
@@ -20,7 +18,9 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
 
   Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
-  double _milesValue = 0.0;
+  double _milesValueRunning = 0.0;
+  double _milesValueJogging = 0.0;
+  int _elapsedSeconds = 0;
 
   @override
   void dispose() {
@@ -40,15 +40,14 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
           );
         }).toList(),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: ElevatedButton(
         onPressed: _saveWorkout,
-        child: Icon(Icons.save),
+        child: Text("Save Workout"),
       ),
     );
   }
 
   Widget _buildInputField(Exercise exercise) {
-    // Text input for numeric values like weight or reps
     if (exercise.unitMeasurement == 'reps') {
       return Row(
         children: [
@@ -72,40 +71,31 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
         ],
       );
     }
-    // Stopwatch input for time-based exercises (e.g., plank)
     else if (exercise.unitMeasurement == 'seconds') {
       return Row(
         children: [
           Expanded(
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  if (_stopwatch.isRunning) {
-                    _stopwatch.stop();
-                    _timer?.cancel(); // Stop the timer when the stopwatch stops
-                  } else {
-                    _stopwatch.start();
-                    _timer = Timer.periodic(Duration(seconds: 1), (_) {
-                      setState(() {}); // Trigger UI update every second
-                    });
-                  }
-                });
+            child: TextField(
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+                suffixText: exercise.unitMeasurement,
+                filled: true,
+                fillColor: Colors.white24,
+              ),
+              onChanged: (value) {
+                recordedResults[exercise] = int.tryParse(value) ?? 0;
               },
-              child: Text(_stopwatch.isRunning ? 'Stop Timer' : 'Start Timer'),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
-              _formatDuration(_stopwatch.elapsed),
-              style: TextStyle(fontSize: 20),
             ),
           ),
         ],
       );
     }
     // Miles input using slider, max value 10 miles
-    else if (exercise.unitMeasurement == 'meters') {
+    else if (exercise.exerciseName == 'Running') {
       return Row(
         children: [
           Expanded(
@@ -113,25 +103,50 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
               children: [
                 Text('Miles', style: TextStyle(fontWeight: FontWeight.bold)),
                 Slider(
-                  value: _milesValue,
+                  value: _milesValueRunning,
                   min: 0,
                   max: 10,
-                  label: _milesValue.toStringAsFixed(1),
+                  label: _milesValueRunning.toStringAsFixed(1),
                   onChanged: (value) {
                     setState(() {
-                      _milesValue = value;
-                      recordedResults[exercise] = _milesValue.toInt();
+                      _milesValueRunning = value;
+                      recordedResults[exercise] = _milesValueRunning.toInt();
                     });
                   },
                 ),
-                Text('${_milesValue.toInt().toStringAsFixed(1)} miles'),
+                Text('${_milesValueRunning.toInt().toStringAsFixed(1)} miles'),
               ],
             ),
           ),
         ],
       );
     }
-
+    else if (exercise.exerciseName == 'Jogging') {
+      return Row(
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                Text('Miles', style: TextStyle(fontWeight: FontWeight.bold)),
+                Slider(
+                  value: _milesValueJogging,
+                  min: 0,
+                  max: 10,
+                  label: _milesValueJogging.toStringAsFixed(1),
+                  onChanged: (value) {
+                    setState(() {
+                      _milesValueJogging = value;
+                      recordedResults[exercise] = _milesValueJogging.toInt();
+                    });
+                  },
+                ),
+                Text('${_milesValueJogging.toInt().toStringAsFixed(1)} miles'),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     return SizedBox();
   }
 

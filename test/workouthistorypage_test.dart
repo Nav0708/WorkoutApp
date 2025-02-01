@@ -12,8 +12,9 @@ import 'package:provider/provider.dart';
 void main() {
   testWidgets('WorkoutHistoryPage shows multiple entries', (WidgetTester tester) async {
     final workoutProvider = WorkoutProvider();
-    workoutProvider.addWorkout(Workout(workoutDate: DateTime.now(), exerciseResults: []));
-
+    workoutProvider.addWorkout(Workout(workoutDate: DateTime.now(), exerciseResults: [ExerciseResult(exercise: Exercise(exerciseName: 'Running', targetOutput:10,unitMeasurement: 'meters'), achievedOutput: 10)]));
+    workoutProvider.addWorkout(Workout(workoutDate: DateTime.now(), exerciseResults: [ExerciseResult(exercise: Exercise(exerciseName: 'Push-Ups', targetOutput:20,unitMeasurement: 'reps'), achievedOutput: 20)]));
+    workoutProvider.addWorkout(Workout(workoutDate: DateTime.now(), exerciseResults: [ExerciseResult(exercise: Exercise(exerciseName: 'Plank', targetOutput:60,unitMeasurement: 'seconds'), achievedOutput: 60)]));
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
         value: workoutProvider,
@@ -22,6 +23,7 @@ void main() {
     );
 
     expect(find.byType(ListTile), findsWidgets);
+    expect(find.byType(ListTile), findsNWidgets(3));
   });
 
   testWidgets('WorkoutDetails shows correct exercise data', (WidgetTester tester) async {
@@ -33,7 +35,6 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(home: WorkoutDetails(workout: workout)));
-
     expect(find.text('Push-ups'), findsOneWidget);
     expect(find.text('Target : 10 reps\nAchieved: 12 reps'), findsOneWidget);
   });
