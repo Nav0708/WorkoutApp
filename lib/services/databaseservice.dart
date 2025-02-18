@@ -62,8 +62,8 @@ class DatabaseService {
 
   Future<List<WorkoutPlan>> getWorkoutPlans() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('workout_plans');
-
+    final List<Map<String, dynamic>> maps = await db.query('workout_plan');
+    print("Maps: $maps");
     return List.generate(maps.length, (i) {
       return WorkoutPlan.fromMap(maps[i]);
     });

@@ -34,14 +34,12 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
       final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
-        // Parse the HTML content using the `html` package
         final document = html.parse(response.body);
-        final links = document.getElementsByTagName('a'); // Extract all <a> tags
+        final links = document.getElementsByTagName('a');
 
-        // Extract category names from href attributes or text, based on the structure of the HTML
         List<String> categories = [];
         for (var link in links) {
-          final categoryText = link.text.trim(); // Get the category name from the text of the <a> tag
+          final categoryText = link.text.trim();
           if (categoryText.isNotEmpty) {
             categories.add(categoryText);
           }
@@ -112,10 +110,8 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
         exerciseList: _exercises,
       );
 
-      // Save to database
-      await DatabaseService().insertWorkoutPlan(workoutPlan);
 
-      // Notify provider
+      await DatabaseService().insertWorkoutPlan(workoutPlan);
       final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
       workoutProvider.addWorkoutPlan(workoutPlan);
 
@@ -142,7 +138,7 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
   @override
   void initState() {
     super.initState();
-    _fetchCategories(); // Fetch categories when the page is loaded
+    _fetchCategories();
   }
 
   @override
@@ -161,7 +157,7 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
               onPressed: _isCategoriesLoading ? null : _fetchCategories,
               child: _isCategoriesLoading
                   ? CircularProgressIndicator()
-                  : Text("Fetch Categories"),
+                  : Text("Enter a URL for workout plans"),
             ),
             if (_categories.isNotEmpty)
               Expanded(
@@ -192,7 +188,7 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
                             if (!_isLoading) {
                               _fetchWorkoutPlan();
                             }
-                            child: _isLoading ? CircularProgressIndicator() : Text("Download");
+                            child: _isLoading ? CircularProgressIndicator() : Text("View Workout Plan");
                             },
                       ),
                     );
@@ -238,11 +234,18 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
                 children: [
                   ElevatedButton(
                     onPressed: _saveWorkoutPlan,
-                    child: Text("Save Workout Plan"),
+                    child: Text("Download Workout Plan"),
                   ),
                   ElevatedButton(
                     onPressed: _discardWorkoutPlan,
-                    child: Text("Cancel"),
+                    child: Text("Discard"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      List<WorkoutPlan> savedPlans = await DatabaseService().getWorkoutPlans();
+                      print("Saved Workout Plans: $savedPlans");
+                    },
+                    child: Text("Check Saved Plans"),
                   ),
                 ],
               ),

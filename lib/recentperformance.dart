@@ -5,7 +5,8 @@ import 'workoutprovider.dart';
 class RecentPerformanceWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<WorkoutProvider>(
+    return SafeArea(
+    child : Consumer<WorkoutProvider>(
       builder: (context, workoutProvider, child) {
         int workoutCount = workoutProvider.workouts.length;
         final percet = (workoutCount / 7) * 100;
@@ -29,6 +30,7 @@ class RecentPerformanceWidget extends StatelessWidget {
           ),
         );
       },
+    ),
     );
   }
 }

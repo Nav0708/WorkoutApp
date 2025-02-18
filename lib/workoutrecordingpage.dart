@@ -9,8 +9,10 @@ import 'model/workout.dart';
 import 'dart:async';
 
 class WorkoutRecordingPage extends StatefulWidget {
+  final WorkoutPlan selectedWorkoutPlan;
   @override
   _WorkoutRecordingPageState createState() => _WorkoutRecordingPageState();
+  const WorkoutRecordingPage({Key? key, required this.selectedWorkoutPlan}) : super(key: key);
 }
 
 class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
@@ -26,8 +28,8 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
   @override
   void initState() {
     super.initState();
-    // Load workout plans when the page is initialized
-    Provider.of<WorkoutProvider>(context, listen: false).loadWorkoutPlans();
+    _selectedPlan=widget.selectedWorkoutPlan;
+    //Provider.of<WorkoutProvider>(context, listen: false).loadWorkoutPlans();
   }
 
   @override
