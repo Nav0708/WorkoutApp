@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:ecommerce/services/databaseservice.dart';
-
-import 'model/data.dart';
+import 'package:provider/provider.dart';
+import '../model/workoutplan.dart';
+import '../services/databaseservice.dart';
+import '../workoutprovider.dart';
+import 'model/exercise.dart';
 
 class DownloadWorkoutPage extends StatefulWidget {
   @override
@@ -12,12 +14,11 @@ class DownloadWorkoutPage extends StatefulWidget {
 
 class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
   final TextEditingController _urlController = TextEditingController();
-  List<String> _exercises = [];
-  DateTime _workoutDate = DateTime.now();
+  List<Exercise> _exercises = [];
   bool _isLoading = false;
   String? _error;
 
-  Future<void> fetchWorkout() async {
+  Future<void> _fetchWorkoutPlan() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -25,33 +26,38 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
 
     try {
       final response = await http.get(Uri.parse(_urlController.text));
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        setState(() {
-          _workoutDate = data['workoutDate'];
-          _exercises = List<String>.from(data['exercises']);
-        });
+        final exercises = (data['exercises'] as List)
+            .map((e) => Exercise.fromMap(e))
+            .toList();
+        setState(() => _exercises = exercises);
       } else {
         setState(() => _error = "Failed to fetch workout plan.");
       }
     } catch (e) {
       setState(() => _error = "Invalid URL or network issue.");
+    } finally {
+      setState(() => _isLoading = false);
     }
-
-    setState(() => _isLoading = false);
   }
 
-  Future<void> saveWorkout() async {
+  Future<void> _saveWorkoutPlan() async {
     if (_exercises.isNotEmpty) {
-      // await DatabaseService.instance.insertWorkout(
-      //   Workout(workoutDate:_workoutDate,
-      //   exercises: json.encode(_exercises)),
-      // );
+      final workoutPlan = WorkoutPlan(
+        workoutPlan: "Downloaded Plan",
+        exerciseList: _exercises,
+      );
+
+      // Save to database
+      await DatabaseService().insertWorkoutPlan(workoutPlan);
+
+      // Notify provider
+      final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
+      workoutProvider.addWorkoutPlan(workoutPlan);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Workout Saved!')),
+        SnackBar(content: Text('Workout Plan Saved!')),
       );
 
       Navigator.pop(context);
@@ -71,21 +77,29 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
               decoration: InputDecoration(labelText: "Enter Workout Plan URL"),
             ),
             ElevatedButton(
-              onPressed: fetchWorkout,
-              child: Text("Download"),
+              onPressed: _isLoading ? null : _fetchWorkoutPlan,
+              child: _isLoading ? CircularProgressIndicator() : Text("Download"),
             ),
-            if (_isLoading) CircularProgressIndicator(),
-            if (_error != null) Text(_error!, style: TextStyle(color: Colors.red)),
-            if (_workoutDate != null && _exercises.isNotEmpty)
-              Column(
-                children: [
-                  Text("Workout: $_workoutDate", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ..._exercises.map((exercise) => Text("- $exercise")).toList(),
-                  ElevatedButton(
-                    onPressed: saveWorkout,
-                    child: Text("Save Workout"),
-                  ),
-                ],
+            if (_error != null)
+              Text(_error!, style: TextStyle(color: Colors.red)),
+            if (_exercises.isNotEmpty)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _exercises.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(_exercises[index].exerciseName),
+                      subtitle: Text(
+                        "${_exercises[index].targetOutput} ${_exercises[index].unitMeasurement}",
+                      ),
+                    );
+                  },
+                ),
+              ),
+            if (_exercises.isNotEmpty)
+              ElevatedButton(
+                onPressed: _saveWorkoutPlan,
+                child: Text("Save Workout Plan"),
               ),
           ],
         ),
