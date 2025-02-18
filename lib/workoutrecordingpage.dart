@@ -1,3 +1,4 @@
+import 'package:ecommerce/services/databaseservice.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'model/exercise.dart';
@@ -157,7 +158,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
     return "$hours:$minutes:$seconds";
   }
 
-  void _saveWorkout() {
+  Future<void> _saveWorkout() async {
     List<ExerciseResult> results = recordedResults.entries.map((entry) {
       return ExerciseResult(
         exercise: entry.key,
@@ -169,6 +170,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
       workoutDate: DateTime.now(),
       exerciseResults: results,
     );
+    await DatabaseService.instance.insertWorkout(newWorkout);
 
     Provider.of<WorkoutProvider>(context, listen: false).addWorkout(newWorkout);
     Navigator.pop(context);

@@ -45,7 +45,7 @@ class WorkoutHistoryPage extends StatelessWidget {
               builder: (context) => WorkoutRecordingPage(),
             ),
           );
-          print("resutl $result");
+          print("result $result");
           if (result != null && result is Map<String, int>) {
 
             final workout = Workout(
