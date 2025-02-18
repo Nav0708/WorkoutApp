@@ -1,8 +1,8 @@
 import 'package:ecommerce/services/databaseservice.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'model/exercise.dart';
-import 'model/workoutplan.dart';
+import 'package:ecommerce/model/exercise.dart';
+import 'package:ecommerce/model/workoutplan.dart';
 import 'package:ecommerce/workoutprovider.dart';
 import 'model/exercise_result.dart';
 import 'model/workout.dart';
@@ -14,7 +14,7 @@ class WorkoutRecordingPage extends StatefulWidget {
 }
 
 class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
-  final WorkoutPlan workoutPlan = WorkoutPlan.examplePlan();
+  WorkoutPlan? _selectedPlan; // Track the selected workout plan
   final Map<Exercise, dynamic> recordedResults = {};
 
   Stopwatch _stopwatch = Stopwatch();
@@ -24,6 +24,13 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
   int _elapsedSeconds = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // Load workout plans when the page is initialized
+    Provider.of<WorkoutProvider>(context, listen: false).loadWorkoutPlans();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -31,15 +38,44 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final workoutProvider = Provider.of<WorkoutProvider>(context);
+
     return Scaffold(
       appBar: AppBar(title: Text("Record Workout")),
-      body: ListView(
-        children: workoutPlan.exerciseList.map((exercise) {
-          return ListTile(
-            title: Text(exercise.exerciseName),
-            subtitle: _buildInputField(exercise),
-          );
-        }).toList(),
+      body: Column(
+        children: [
+          // Dropdown to select a workout plan
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: DropdownButton<WorkoutPlan>(
+              value: _selectedPlan,
+              hint: Text("Select a Workout Plan"),
+              onChanged: (WorkoutPlan? newValue) {
+                setState(() {
+                  _selectedPlan = newValue;
+                  recordedResults.clear(); // Clear previous results
+                });
+              },
+              items: workoutProvider.workoutPlans.map((WorkoutPlan plan) {
+                return DropdownMenuItem<WorkoutPlan>(
+                  value: plan,
+                  child: Text(plan.workoutPlan),
+                );
+              }).toList(),
+            ),
+          ),
+          // Display exercises from the selected plan
+          Expanded(
+            child: ListView(
+              children: _selectedPlan?.exerciseList.map((exercise) {
+                return ListTile(
+                  title: Text(exercise.exerciseName),
+                  subtitle: _buildInputField(exercise),
+                );
+              }).toList() ?? [],
+            ),
+          ),
+        ],
       ),
       floatingActionButton: ElevatedButton(
         onPressed: _saveWorkout,
@@ -71,8 +107,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
           ),
         ],
       );
-    }
-    else if (exercise.unitMeasurement == 'seconds') {
+    } else if (exercise.unitMeasurement == 'seconds') {
       return Row(
         children: [
           Expanded(
@@ -94,9 +129,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
           ),
         ],
       );
-    }
-    // Miles input using slider, max value 10 miles
-    else if (exercise.exerciseName == 'Running') {
+    } else if (exercise.exerciseName == 'Running') {
       return Row(
         children: [
           Expanded(
@@ -121,8 +154,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
           ),
         ],
       );
-    }
-    else if (exercise.exerciseName == 'Jogging') {
+    } else if (exercise.exerciseName == 'Jogging') {
       return Row(
         children: [
           Expanded(
@@ -151,14 +183,14 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
     return SizedBox();
   }
 
-  String _formatDuration(Duration duration) {
-    String hours = duration.inHours.toString().padLeft(2, '0');
-    String minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
-    String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return "$hours:$minutes:$seconds";
-  }
-
   Future<void> _saveWorkout() async {
+    if (_selectedPlan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select a workout plan first.")),
+      );
+      return;
+    }
+
     List<ExerciseResult> results = recordedResults.entries.map((entry) {
       return ExerciseResult(
         exercise: entry.key,
@@ -170,7 +202,8 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
       workoutDate: DateTime.now(),
       exerciseResults: results,
     );
-    await DatabaseService.instance.insertWorkout(newWorkout);
+
+    await DatabaseService().insertWorkout(newWorkout);
 
     Provider.of<WorkoutProvider>(context, listen: false).addWorkout(newWorkout);
     Navigator.pop(context);

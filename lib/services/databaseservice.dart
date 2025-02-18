@@ -18,31 +18,20 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'workouts.db');
+    final path = join(dbPath, 'workoutapp.db');
 
     return await openDatabase(
       path,
       version: 1,
-      onCreate: _onCreate,
+      onCreate: (db, version) async {
+      await db.execute('''
+          CREATE TABLE workout_plan (
+            workoutPlan TEXT NOT NULL,
+            exerciseList TEXT NOT NULL
+          )
+        ''');
+      },
     );
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE workouts(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workoutDate TEXT,
-        exercises TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE workout_plans(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workoutPlan TEXT,
-        exercises TEXT
-      )
-    ''');
   }
 
   Future<void> insertWorkout(Workout workout) async {
@@ -66,9 +55,8 @@ class DatabaseService {
   Future<void> insertWorkoutPlan(WorkoutPlan workoutPlan) async {
     final db = await database;
     await db.insert(
-      'workout_plans',
-      workoutPlan.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      'workout_plan',
+      workoutPlan.toMap()
     );
   }
 
