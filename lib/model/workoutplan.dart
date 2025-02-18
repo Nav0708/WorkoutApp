@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'exercise.dart';
 
 class WorkoutPlan {
@@ -6,6 +8,22 @@ class WorkoutPlan {
 
   WorkoutPlan({required this.workoutPlan, required this.exerciseList});
 
+  Map<String, dynamic> toMap() {
+    return {
+      'workoutPlan': workoutPlan,
+      'exerciseList': jsonEncode(exerciseList.map((e) => e.toMap()).toList()),
+    };
+  }
+
+  // Create a WorkoutPlan object from a Map (useful for deserialization)
+  factory WorkoutPlan.fromMap(Map<String, dynamic> map) {
+    return WorkoutPlan(
+      workoutPlan: map['workoutPlan'],
+      exerciseList: (jsonDecode(map['exerciseList']) as List)
+          .map((e) => Exercise.fromMap(e))
+          .toList(),
+    );
+  }
   static WorkoutPlan examplePlan() {
     return WorkoutPlan(
       workoutPlan: "Full Body Strength",
