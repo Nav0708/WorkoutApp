@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'exercise_result.dart';
 
@@ -8,18 +8,43 @@ class Workout {
 
   Workout({required this.workoutDate, required this.exerciseResults});
 
-  Map<String, dynamic> toMap() {
-    return {
-      'workoutDate': workoutDate.toIso8601String(),
-      'exercises': jsonEncode(exerciseResults.map((e) => e.toMap()).toList()),
-    };
+  factory Workout.fromFirestore(DocumentSnapshot doc) {
+    try {
+      final data = doc.data() as Map<String, dynamic>?;
+
+      if (data == null) {
+        throw Exception('Document data is null');
+      }
+
+      // Parse workoutDate (timestamp)
+      final timestamp = data['timestamp'] as Timestamp?;
+      if (timestamp == null) {
+        throw Exception('Timestamp field is missing or null');
+      }
+      final workoutDate = timestamp.toDate();
+
+      // Parse exerciseResults
+      final exerciseResultsData = data['exerciseResults'] as List<dynamic>?;
+      if (exerciseResultsData == null) {
+        throw Exception('exerciseResults field is missing or null');
+      }
+
+      final exerciseResults = exerciseResultsData.map((item) {
+        return ExerciseResult.fromMap(item as Map<String, dynamic>);
+      }).toList();
+
+      return Workout(
+        workoutDate: workoutDate,
+        exerciseResults: exerciseResults,
+      );
+    } catch (e) {
+      print('Error parsing Workout from Firestore: $e');
+      rethrow; // Re-throw the error for debugging
+    }
   }
-  factory Workout.fromMap(Map<String, dynamic> map) {
-    return Workout(
-      workoutDate: DateTime.parse(map['workoutDate']),
-      exerciseResults: (jsonDecode(map['exercises']) as List)
-          .map((item) => ExerciseResult.fromMap(item)) // Deserialize ExerciseResult
-          .toList(),
-    );
+
+  @override
+  String toString() {
+    return 'Workout(workoutDate: $workoutDate, exerciseResults: $exerciseResults)';
   }
 }

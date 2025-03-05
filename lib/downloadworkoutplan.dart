@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html;
@@ -109,16 +110,27 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
         workoutPlan: _workoutPlanName,
         exerciseList: _exercises,
       );
+      try {
+        final firestore = FirebaseFirestore.instance;
 
-
-      await DatabaseService().insertWorkoutPlan(workoutPlan);
-      final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
-      workoutProvider.addWorkoutPlan(workoutPlan);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Workout Plan Saved!')),
-      );
-
+        final workoutPlanMap = {
+          'workoutPlan': workoutPlan.workoutPlan,
+          'exerciseList': workoutPlan.exerciseList.map((exercise) =>
+          {
+            'exerciseName': exercise.exerciseName,
+            'targetOutput': exercise.targetOutput,
+            'unitMeasurement': exercise.unitMeasurement,
+          }).toList(),
+        };
+        await firestore.collection('workoutPlans').add(workoutPlanMap);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download Success!! Workout Plan saved to Firestore!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save workout plan: $e')),
+        );
+      }
       Navigator.pop(context);
     }
   }
@@ -151,7 +163,7 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
           children: [
             TextField(
               controller: _urlController,
-              decoration: InputDecoration(labelText: "Enter Workout Plan URL"),
+              decoration: InputDecoration(labelText: "Enter URL( https://exercise-app-8299a.web.app/exercises/)"),
             ),
             ElevatedButton(
               onPressed: _isCategoriesLoading ? null : _fetchCategories,
@@ -159,6 +171,8 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
                   ? CircularProgressIndicator()
                   : Text("Enter a URL for workout plans"),
             ),
+            Text("enter url https://exercise-app-8299a.web.app/exercises/"),
+            Text("provides a list of catergories from json file"),
             if (_categories.isNotEmpty)
               Expanded(
                 child: ListView.builder(
@@ -197,10 +211,6 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
               ),
             if (_categories.isEmpty && !_isCategoriesLoading)
               Text("No categories found", style: TextStyle(color: Colors.red)),
-            // ElevatedButton(
-            //   onPressed: _isLoading ? null : _fetchWorkoutPlan,
-            //   child: _isLoading ? CircularProgressIndicator() : Text("Download"),
-            // ),
             if (_error != null)
               Text(_error!, style: TextStyle(color: Colors.red)),
             if (_workoutPlanName.isNotEmpty)
@@ -239,13 +249,6 @@ class _DownloadWorkoutPageState extends State<DownloadWorkoutPage> {
                   ElevatedButton(
                     onPressed: _discardWorkoutPlan,
                     child: Text("Discard"),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      List<WorkoutPlan> savedPlans = await DatabaseService().getWorkoutPlans();
-                      print("Saved Workout Plans: $savedPlans");
-                    },
-                    child: Text("Check Saved Plans"),
                   ),
                 ],
               ),

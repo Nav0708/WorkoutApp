@@ -1,19 +1,21 @@
+import 'dart:convert';
+
 import 'exercise.dart';
 class ExerciseResult {
   final Exercise exercise;
   final int achievedOutput;
   ExerciseResult({required this.exercise, required this.achievedOutput});
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'exercise': exercise,
+      'exercise': exercise.toJson(),
       'achievedOutput': achievedOutput,
     };
   }
-  factory ExerciseResult.fromMap(Map<String, dynamic> map) {
+  factory ExerciseResult.fromMap(Map<String, dynamic> data) {
     return ExerciseResult(
-      exercise: Exercise.fromMap(map['exercise']), // Deserialize the Exercise object
-      achievedOutput: map['achievedOutput'],
+      exercise: data['exerciseName'] ?? 'Unknown Exercise',
+      achievedOutput: data['achievedOutput'] ?? 0,
     );
   }
 }

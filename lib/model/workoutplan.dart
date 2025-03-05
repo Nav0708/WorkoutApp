@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'exercise.dart';
 
@@ -8,34 +9,36 @@ class WorkoutPlan {
 
   WorkoutPlan({required this.workoutPlan, required this.exerciseList});
 
-  Map<String, dynamic> toMap() {
-    return {
-      'workoutPlan': workoutPlan,
-      'exerciseList': jsonEncode(exerciseList.map((e) => e.toMap()).toList()),
-    };
-  }
-
-  // Create a WorkoutPlan object from a Map (useful for deserialization)
-  factory WorkoutPlan.fromMap(Map<String, dynamic> map) {
+  factory WorkoutPlan.fromFirestore(
+      QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
     return WorkoutPlan(
-      workoutPlan: map['workoutPlan'],
-      exerciseList: (jsonDecode(map['exerciseList']) as List)
-          .map((e) => Exercise.fromMap(e))
+      workoutPlan: data['workoutPlan'] ?? 'Unknown Plan',
+      exerciseList: (data['exerciseList'] as List<dynamic>)
+          .map((e) => Exercise.fromJson(e))
           .toList(),
     );
   }
-  static WorkoutPlan examplePlan() {
-    return WorkoutPlan(
-      workoutPlan: "Full Body Strength",
-      exerciseList: [
-        Exercise(exerciseName: "Push-ups",  targetOutput: 20, unitMeasurement: "reps"),
-        Exercise(exerciseName: "Plank", targetOutput: 20,unitMeasurement: "seconds"),
-        Exercise(exerciseName: "Running", targetOutput: 40,  unitMeasurement: "meters"),
-        Exercise(exerciseName: "Squats", targetOutput: 30,  unitMeasurement: "reps"),
-        Exercise(exerciseName: "Burpees", targetOutput: 10,unitMeasurement: "seconds"),
-        Exercise(exerciseName: "Jogging", targetOutput: 20,  unitMeasurement: "meters"),
-        Exercise(exerciseName: "Sit-ups", targetOutput: 20,  unitMeasurement: "reps"),
-      ],
-    );
-  }
 }
+// Map<String, dynamic> toMap() {
+//   return {
+//     'workoutPlan': workoutPlan,
+//     'exerciseList': jsonEncode(exerciseList.map((e) => e.toMap()).toList()),
+//   };
+// }
+
+// Create a WorkoutPlan object from a Map (useful for deserialization)
+  // static WorkoutPlan examplePlan() {
+  //   return WorkoutPlan(
+  //     workoutPlan: "Full Body Strength",
+  //     exerciseList: [
+  //       Exercise(exerciseName: "Push-ups",  targetOutput: 20, unitMeasurement: "reps"),
+  //       Exercise(exerciseName: "Plank", targetOutput: 20,unitMeasurement: "seconds"),
+  //       Exercise(exerciseName: "Running", targetOutput: 40,  unitMeasurement: "meters"),
+  //       Exercise(exerciseName: "Squats", targetOutput: 30,  unitMeasurement: "reps"),
+  //       Exercise(exerciseName: "Burpees", targetOutput: 10,unitMeasurement: "seconds"),
+  //       Exercise(exerciseName: "Jogging", targetOutput: 20,  unitMeasurement: "meters"),
+  //       Exercise(exerciseName: "Sit-ups", targetOutput: 20,  unitMeasurement: "reps"),
+  //     ],
+  //   );
+  // }
