@@ -1,171 +1,134 @@
-// lib/screens/join_workout_screen.dart
-import 'package:WorkoutApp/model/exercise.dart';
-import 'package:WorkoutApp/workoutrecordingpage.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../services/workoutfirestoreservice.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'workoutrecordingpage.dart';
 import 'model/workoutplan.dart';
 import 'model/workouttype.dart';
-import 'workoutselection.dart';
 
 class JoinWorkoutPage extends StatefulWidget {
   @override
   _JoinWorkoutPageState createState() => _JoinWorkoutPageState();
 }
 
-
-
 class _JoinWorkoutPageState extends State<JoinWorkoutPage> {
-  final _codeController = TextEditingController();
-  bool _isJoining = false;
+  final TextEditingController _codeController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  Future<void> _joinWorkout() async {
-    final code = _codeController.text.trim();
-    String name='';
+  Future<void> _joinWorkoutSession() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-
-    if (code.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an invite code')),
-      );
+    String enteredCode = _codeController.text.trim();
+    if (enteredCode.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Please enter a workout code.";
+      });
       return;
     }
 
-    setState(() {
-      _isJoining = true;
-    });
-
     try {
-      final workoutCode = code;
-
-      final sessionRef = FirebaseFirestore.instance
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('workout_sessions')
-          .doc(code);
-      print('Session Ref: $sessionRef');
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('workout_results')
-          .where('workoutCode', isEqualTo: workoutCode)
+          .where('workoutCode', isEqualTo: enteredCode)
+          .limit(1)
           .get();
-      final document = querySnapshot.docs.first;
-      final data = document.data();
 
-      try {
-        if (document.exists) {
-          final data = document.data();
-          print('we got this data from firestore ${data}');
-          //print('Document data: ${data['type']}');
-        } else {
-          print('Document does not exist');
-        }
-      } catch (e) {
-        print('Error fetching document: $e');
-      }
-      String typeString = data["workoutType"];
-      WorkoutType workoutType = WorkoutType.fromString(typeString);
-      print("Workout Type: $typeString");
-
-      final String workoutPlanName = data['workoutPlan'] ?? 'Unknown Workout Plan';
-      final List<dynamic> exerciseResults = data['exerciseResults'] ?? [];
-
-      final Map<String, dynamic> workoutData = {
-        'workoutPlan': workoutPlanName,
-        'exerciseList': exerciseResults.map((result) => result['exercise']).toList(),
-      };
-
-
-
-        await sessionRef.update({
-          'participants': FieldValue.arrayUnion([FirebaseAuth.instance.currentUser?.uid]),
+      if (querySnapshot.docs.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Invalid workout code. Please check and try again.";
         });
-
-      WorkoutPlan selectedWorkoutPlan = WorkoutPlan.fromFirestore(workoutData);
-
-      print('Workout Plan Name**********************: ${selectedWorkoutPlan}');
-
-
-      DocumentSnapshot updatedSession = await document.reference.get();
-      print('Updated Session: $updatedSession');
-      List<dynamic> participants = updatedSession['participants'] ?? [];
-
-      if (participants.contains(FirebaseAuth.instance.currentUser?.uid)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Successfully joined the workout!')),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WorkoutRecordingPage(selectedWorkoutPlan: selectedWorkoutPlan, workoutType: workoutType, workoutCode: workoutCode),
-          ),
-        );
-      }else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to join the workout')),
-        );
+        return;
       }
-    } catch (e) {
-      print(e.toString());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error joining workout: ${e.toString()}')),
+
+      DocumentSnapshot sessionDoc = querySnapshot.docs.first;
+      Map<String, dynamic> sessionData = sessionDoc.data() as Map<String, dynamic>;
+       print(sessionData);
+       final wp=sessionData['workoutPlan'];
+      QuerySnapshot querySnapshotWP = await FirebaseFirestore.instance
+          .collection('workoutPlans')
+          .where('workoutPlan', isEqualTo: wp)
+          .limit(1)
+          .get();
+      print("wp:::::::::::::::::::::${querySnapshotWP.docs.first.data()}");
+      // WorkoutPlan workoutPlan = WorkoutPlan(
+      //   workoutPlan: sessionData['workoutPlan'],
+      //   exerciseList: [],
+      // );
+      Map<String, dynamic> wp1=querySnapshotWP.docs.first.data() as Map<String, dynamic>;
+      WorkoutPlan workoutPlan = WorkoutPlan.fromFirestore(wp1);
+      print("workoutPlan:::::::::::::::::::::${workoutPlan.workoutPlan}");
+
+      WorkoutType workoutType = sessionData['type'] == 'collaborative'
+          ? WorkoutType.collaborative
+          : WorkoutType.competitive;
+
+      String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+      List<dynamic> participants = sessionData['participants'] ?? [];
+
+      if (!participants.contains(currentUserId)) {
+        participants.add(currentUserId);
+        await sessionDoc.reference.update({'participants': participants});
+      }
+
+      // Navigate to the workout recording page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WorkoutRecordingPage(
+            selectedWorkoutPlan: workoutPlan,
+            workoutType: workoutType,
+            workoutCode: enteredCode,
+          ),
+        ),
       );
-      Navigator.pop(context);
-    } finally {
+    } catch (e) {
       setState(() {
-        _isJoining = false;
+        _isLoading = false;
+        _errorMessage = "An error occurred. Please try again.";
       });
     }
-    setState(() {
-      _isJoining = false;
-    });
-
-    @override
-    void dispose() {
-      _codeController.dispose();
-      super.dispose();
-    }
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Join Workout'),
-      ),
-      body: _isJoining
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: Text("Join Workout Session")),
+      body: Padding(
+        padding: EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Enter the workout invite code',
-              style: Theme.of(context).textTheme.headlineSmall,
+              "Enter the workout invite code shared with you:",
+              style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             TextField(
               controller: _codeController,
-              decoration: const InputDecoration(
-                labelText: 'Invite Code',
+              decoration: InputDecoration(
+                labelText: "Workout Code",
                 border: OutlineInputBorder(),
               ),
-              textCapitalization: TextCapitalization.characters,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                letterSpacing: 2.0,
-              ),
             ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _joinWorkout,
-              child: const Text('Join Workout'),
-
+            SizedBox(height: 20),
+            if (_errorMessage != null)
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Colors.red),
+              ),
+            SizedBox(height: 20),
+            _isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(
+              onPressed: _joinWorkoutSession,
+              child: Text("Join Workout"),
             ),
           ],
         ),

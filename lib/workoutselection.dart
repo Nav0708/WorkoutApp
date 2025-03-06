@@ -26,6 +26,7 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
     _fetchWorkoutPlans();
   }
 
+
   Future<void> _fetchWorkoutPlans() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance.collection('workoutPlans').get();
@@ -77,8 +78,6 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
       }
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
       final data=firestore.collection('workout_sessions').add(sessionData);
-      // print(firestore.collection('workout_sessions').doc(workoutCode).set(sessionData));
-      // await firestore.collection('workout_sessions').doc(workoutCode).set(sessionData);
       print("New workout session created with ID: $data");
       final shareMessage = type == WorkoutType.collaborative
           ? "Join my collaborative workout session using code: $workoutCode"
