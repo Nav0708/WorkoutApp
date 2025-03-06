@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'model/workouttype.dart';
 import 'services/databaseservice.dart';
 import 'model/workoutplan.dart';
 import 'workoutrecordingpage.dart';
@@ -31,7 +32,7 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
       print('Workout plans fetched: $querySnapshot');
       List<WorkoutPlan> workoutPlans = querySnapshot.docs.map((doc) {
         print('Parsing document: ${doc.id}');
-        return WorkoutPlan.fromFirestore(doc);
+        return WorkoutPlan.fromFirestore(doc.data());
       }).toList();
 
       print("Workout plans fetched: $workoutPlans");
@@ -64,6 +65,7 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
       final sessionData = {
         'type': type == WorkoutType.collaborative ? 'collaborative' : 'competitive',
         'workoutPlan': _selectedWorkoutPlan!.workoutPlan,
+        'exercises': _selectedWorkoutPlan!.exerciseList,
         'createdBy': FirebaseAuth.instance.currentUser?.uid,
         'participants': [FirebaseAuth.instance.currentUser?.uid],
         'timestamp': FieldValue.serverTimestamp(),
@@ -162,8 +164,3 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
   }
 }
 
-enum WorkoutType {
-  solo,
-  collaborative,
-  competitive,
-}

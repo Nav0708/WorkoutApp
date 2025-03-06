@@ -31,7 +31,7 @@ void main() async {
   } catch (e) {
     print('Error initializing Firebase: $e');
   }
-  await clearAuthState();
+  //await clearAuthState();
   runApp(
     MultiProvider(
       providers: [
@@ -90,9 +90,10 @@ class MyApp extends StatelessWidget {
       routerConfig: _router, // Use the GoRouter configuration
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
         useMaterial3: true,
       ),
+
     );
   }
 }

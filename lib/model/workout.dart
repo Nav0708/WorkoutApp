@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'exercise.dart';
 import 'exercise_result.dart';
 
 class Workout {
@@ -10,28 +11,16 @@ class Workout {
 
   factory Workout.fromFirestore(DocumentSnapshot doc) {
     try {
-      final data = doc.data() as Map<String, dynamic>?;
+      final data = doc.data() as Map<String, dynamic>? ?? {};
 
-      if (data == null) {
-        throw Exception('Document data is null');
-      }
-
-      // Parse workoutDate (timestamp)
-      final timestamp = data['timestamp'] as Timestamp?;
-      if (timestamp == null) {
-        throw Exception('Timestamp field is missing or null');
-      }
+      final timestamp = (data['timestamp'] as Timestamp?) ?? Timestamp.now();
       final workoutDate = timestamp.toDate();
-
-      // Parse exerciseResults
-      final exerciseResultsData = data['exerciseResults'] as List<dynamic>?;
-      if (exerciseResultsData == null) {
-        throw Exception('exerciseResults field is missing or null');
-      }
-
-      final exerciseResults = exerciseResultsData.map((item) {
-        return ExerciseResult.fromMap(item as Map<String, dynamic>);
-      }).toList();
+      final exerciseResults = (data['exerciseResults'] as List<dynamic>? ?? [])
+          .map<ExerciseResult>((item) {
+        final mapItem = item as Map<String, dynamic>? ?? {};
+        return ExerciseResult.fromMap(mapItem);
+      })
+          .toList();
 
       return Workout(
         workoutDate: workoutDate,
@@ -39,7 +28,7 @@ class Workout {
       );
     } catch (e) {
       print('Error parsing Workout from Firestore: $e');
-      rethrow; // Re-throw the error for debugging
+      rethrow;
     }
   }
 

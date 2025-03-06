@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/databaseservice.dart';
+import 'model/workouttype.dart';
 import 'workoutprovider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,9 +17,11 @@ import 'dart:async';
 
 class WorkoutRecordingPage extends StatefulWidget {
   final WorkoutPlan selectedWorkoutPlan;
-  const WorkoutRecordingPage({super.key, required this.selectedWorkoutPlan, required WorkoutType workoutType, required String workoutCode});
+  final WorkoutType workoutType;
+  final String workoutCode;
 
-  get workoutCode => null;
+  const WorkoutRecordingPage({super.key, required this.selectedWorkoutPlan, required this.workoutType, required this.workoutCode});
+
 
   @override
   _WorkoutRecordingPageState createState() => _WorkoutRecordingPageState();
@@ -116,6 +119,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
     // print("Recorded Results: $recordedResults");
     //
     final results = recordedResults.entries.map((entry) {
+      print("Saving exercise result: ${entry.key}");
       print("Saving exercise result: ${entry.key.exerciseName} - ${entry.value}");
       return ExerciseResult(
         exercise: entry.key,
@@ -124,7 +128,7 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
     }).toList();
     final resultsData = results.map((result) {
       return {
-        'exerciseName': result.exercise.exerciseName,
+        'exercise': result.exercise.toJson(),
         'achievedOutput': result.achievedOutput,
       };
     }).toList();
@@ -147,11 +151,12 @@ class _WorkoutRecordingPageState extends State<WorkoutRecordingPage> {
       final user = FirebaseAuth.instance.currentUser;
       final firestore = FirebaseFirestore.instance;
       await firestore.collection('workout_results').add({
-        'id':0,
         'workoutPlan': widget.selectedWorkoutPlan.workoutPlan,
         'exerciseResults': resultsData,
         'userId': user?.uid,
         'timestamp': DateTime.now(),
+        'workoutType': widget.workoutType.toJson(),
+        'workoutCode': widget.workoutCode,
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Workout saved successfully!")),

@@ -2,6 +2,7 @@ import 'package:WorkoutApp/qrcode/qrcodepage.dart';
 import 'package:WorkoutApp/qrcode/qrcodescannerpage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../services/databaseservice.dart';
 import 'package:flutter/material.dart';
 import 'model/workout.dart';
@@ -36,7 +37,6 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('workout_results')
           .where('userId', isEqualTo: user.uid)
-          .orderBy('timestamp', descending: true)
           .get();
       print("Fetched workouts: $querySnapshot");
       List<Workout> workouts = querySnapshot.docs.map((doc) {
@@ -56,7 +56,7 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
 }
 
 
-@override
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
@@ -68,63 +68,108 @@ class _WorkoutHistoryPageState extends State<WorkoutHistoryPage> {
           itemBuilder: (context, index) {
             final iworkout = _workout[index];
             return ListTile(
-              title: Text('${iworkout.workoutDate}'),
-              subtitle: Text('${iworkout.exerciseResults.length} exercises'),
+              title: Text(
+                DateFormat('MMM dd, yyyy - hh:mm a').format(iworkout.workoutDate),
+                style: TextStyle(fontWeight: FontWeight.w500)
+              ),
+              subtitle: Row(
+                children: [
+                  Icon(Icons.fitness_center, size: 16),
+                  Text(' ${iworkout.exerciseResults.length} exercises'),
+                  SizedBox(width: 10),
+                  Icon(Icons.check_circle, size: 16, color: Colors.green),
+                  Text(' ${_calculateCompleted(iworkout)} achieved'),
+                ],
+              ),
               onTap: () {
                 context.push('/workout-details', extra: iworkout);
               },
             );
           },
         ),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SizedBox(height: 16),
-            FloatingActionButton.extended(
-              onPressed: () {
-                context.push('/workout-selection');
-              },
-              icon: Icon(Icons.new_label_rounded),
-              label: Text("Start a new Workout"),
-            ),
-            SizedBox(height: 16),
-            FloatingActionButton.extended(
-              onPressed: () {
-                context.push('/download-workout');
-              },
-              icon: Icon(Icons.download),
-              label: Text("Download New Workout"),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {context.push('/join-workout');},
-              child: const Text('Join Workout'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => QRCodePage(inviteCode: "123456"),
-                  ),
-                );
-              },
-              child: const Text('Generate QR Code'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const QRScannerPage(),
-                  ),
-                );
-              },
-              child: const Text('Scan QR Code'),
-            ),
-          ],
-        ),
+        bottomNavigationBar: _buildBottomNavBar(),
       ),
     );
   }
+
+  Widget _buildBottomNavBar() {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildNavButton(
+            icon: Icons.fitness_center,
+            label: 'New Workout',
+            onPressed: () => context.push('/workout-selection'),
+          ),
+          _buildNavButton(
+            icon: Icons.download,
+            label: 'Download',
+            onPressed: () => context.push('/download-workout'),
+          ),
+          _buildNavButton(
+            icon: Icons.group_add,
+            label: 'Join Group',
+            onPressed: () => context.push('/join-workout'),
+          ),
+          _buildNavButton(
+            icon: Icons.qr_code,
+            label: 'Generate QR',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => QRCodePage(inviteCode: "123456"),
+              ),
+            ),
+          ),
+          _buildNavButton(
+            icon: Icons.qr_code_scanner,
+            label: 'Scan QR',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const QRScannerPage(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(icon),
+          onPressed: onPressed,
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ],
+    );
+  }
+}
+int _calculateCompleted(Workout workout) {
+  return workout.exerciseResults.where((result) {
+    return result.achievedOutput >= result.exercise.targetOutput;
+  }).length;
 }
