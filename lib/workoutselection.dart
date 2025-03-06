@@ -26,7 +26,6 @@ class _WorkoutSelectionPageState extends State<WorkoutSelectionPage> {
     _fetchWorkoutPlans();
   }
 
-
   Future<void> _fetchWorkoutPlans() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance.collection('workoutPlans').get();
